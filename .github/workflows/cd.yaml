@@ -46,6 +46,9 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
+      - name: Install DevSecOps Engine Tools
+        run: pip install devsecops-engine-tools
+
       - name: Build backend image
         working-directory: todo-app/backend
         run: |
@@ -55,11 +58,17 @@ jobs:
         working-directory: todo-app/backend
         run: |
           docker push ${{ secrets.DOCKER_HUB_USERNAME }}/todo-backend:latest
+      
+      - name: Backend Container Security Scan
+        run: devsecops-engine-tools --module engine_container --image_to_scan ${{ secrets.DOCKER_HUB_USERNAME }}/todo-backend --platform_devops github --remote_config_repo devsecops_remote_config --use_vulnerability_management false
 
       - name: Build frontend image
         working-directory: todo-app/frontend
         run: |
           docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/todo-frontend:latest .
+      
+      - name: Frontend Container Security Scan
+        run: devsecops-engine-tools --module engine_container --image_to_scan ${{ secrets.DOCKER_HUB_USERNAME }}/todo-backend --platform_devops github --remote_config_repo devsecops_remote_config --use_vulnerability_management false
       
       - name: Push frontend image
         working-directory: todo-app/frontend
