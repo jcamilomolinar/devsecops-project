@@ -1,4 +1,4 @@
-name: CD Release
+name: ToDo App CD Pipeline
 
 on:
   push:
@@ -7,6 +7,11 @@ on:
 
 jobs:
   release:
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
     runs-on: ubuntu-latest
 
     steps:
