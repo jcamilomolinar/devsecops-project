@@ -4,14 +4,9 @@ on:
   push:
     branches:
       - trunk
-  workflow_run:
-    workflows: ["ToDo App CI Pipeline"]
-    types:
-      - completed
 
 jobs:
   release:
-    if: github.event.workflow_run.conclusion == 'success'
     permissions:
       contents: write
       issues: write
@@ -51,14 +46,22 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-      - name: Build and push backend image
+      - name: Build backend image
         working-directory: todo-app/backend
         run: |
           docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/todo-backend:latest .
+      
+      - name: Push backend image
+        working-directory: todo-app/backend
+        run: |
           docker push ${{ secrets.DOCKER_HUB_USERNAME }}/todo-backend:latest
 
-      - name: Build and push frontend image
+      - name: Build frontend image
         working-directory: todo-app/frontend
         run: |
           docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/todo-frontend:latest .
+      
+      - name: Push frontend image
+        working-directory: todo-app/frontend
+        run: |
           docker push ${{ secrets.DOCKER_HUB_USERNAME }}/todo-frontend:latest
