@@ -42,6 +42,9 @@ jobs:
         working-directory: todo-app/frontend
         run: npm run build
 
+      - name: Install DevSecOps Engine Tools
+        run: pip install devsecops-engine-tools
+        
       - name: IaC Security Scan
         run: | 
           output=$(devsecops-engine-tools --module engine_iac --folder_path . --platform_devops github --remote_config_repo devsecops_remote_config --use_vulnerability_management false)
