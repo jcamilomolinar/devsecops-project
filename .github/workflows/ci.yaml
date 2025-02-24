@@ -41,3 +41,13 @@ jobs:
       - name: Run frontend build
         working-directory: todo-app/frontend
         run: npm run build
+
+      - name: IaC Security Scan
+        run: | 
+          output=$(devsecops-engine-tools --module engine_iac --folder_path . --platform_devops github --remote_config_repo devsecops_remote_config --use_vulnerability_management false)
+          echo "$output"
+          if [[ $output == *"✘Failed"* ]]; then
+            exit 1
+          fi
+        env:
+          GITHUB_ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
