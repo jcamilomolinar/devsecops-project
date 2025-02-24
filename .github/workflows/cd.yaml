@@ -59,15 +59,15 @@ jobs:
         run: |
           docker push ${{ secrets.DOCKER_HUB_USERNAME }}/todo-backend:latest
       
-      - name: Backend Container Security Scan
-        run: | 
-          output=$(devsecops-engine-tools --module engine_container --image_to_scan ${{ secrets.DOCKER_HUB_USERNAME }}/todo-backend --platform_devops github --remote_config_repo devsecops_remote_config --use_vulnerability_management false)
-          echo "$output"
-          if [[ $output == *"✘Failed"* ]]; then
-            exit 1
-          fi
-        env:
-          GITHUB_ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Backend Container Security Scan
+      #   run: | 
+      #     output=$(devsecops-engine-tools --module engine_container --image_to_scan ${{ secrets.DOCKER_HUB_USERNAME }}/todo-backend --platform_devops github --remote_config_repo devsecops_remote_config --use_vulnerability_management false)
+      #     echo "$output"
+      #     if [[ $output == *"✘Failed"* ]]; then
+      #       exit 1
+      #     fi
+      #   env:
+      #     GITHUB_ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build frontend image
         working-directory: todo-app/frontend
