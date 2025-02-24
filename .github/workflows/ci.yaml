@@ -37,3 +37,7 @@ jobs:
       - name: Run frontend tests
         working-directory: todo-app/frontend
         run: npm test
+      
+      - name: Run frontend build
+        working-directory: todo-app/frontend
+        run: npm run build

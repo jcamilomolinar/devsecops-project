@@ -1,15 +1,15 @@
 const request = require('supertest');
-const app = require('../app'); // Importa la aplicación Express
+const app = require('../app');
 
 describe('Todo Routes', () => {
   let server;
 
   beforeAll((done) => {
-    server = app.listen(5000, done); // Inicia el servidor en un puerto específico
+    server = app.listen(5000, done);
   });
 
   afterAll((done) => {
-    server.close(done); // Cierra el servidor después de las pruebas
+    server.close(done);
   });
 
   test('Obtener todas las tareas', async () => {

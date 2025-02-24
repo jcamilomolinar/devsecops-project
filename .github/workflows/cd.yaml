@@ -30,3 +30,29 @@ jobs:
         run: npx semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
+  docker:
+    if: contains(github.event.head_commit.message, 'deploy docker hub')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
+      - name: Build and push backend image
+        working-directory: todo-app/backend
+        run: |
+          docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/todo-backend:latest .
+          docker push ${{ secrets.DOCKER_HUB_USERNAME }}/todo-backend:latest
+
+      - name: Build and push frontend image
+        working-directory: todo-app/frontend
+        run: |
+          docker build -t ${{ secrets.DOCKER_HUB_USERNAME }}/todo-frontend:latest .
+          docker push ${{ secrets.DOCKER_HUB_USERNAME }}/todo-frontend:latest
