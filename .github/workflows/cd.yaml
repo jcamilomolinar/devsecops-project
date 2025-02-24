@@ -4,9 +4,14 @@ on:
   push:
     branches:
       - trunk
+  workflow_run:
+    workflows: ["ToDo App CI Pipeline"]
+    types:
+      - completed
 
 jobs:
   release:
+    if: github.event.workflow_run.conclusion == 'success'
     permissions:
       contents: write
       issues: write
@@ -32,8 +37,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   
   docker:
-    if: contains(github.event.head_commit.message, 'deploy docker hub')
+    if: contains(github.event.head_commit.message, 'deploy docker hub') 
     runs-on: ubuntu-latest
+    needs: release
 
     steps:
       - name: Checkout code
