@@ -1,0 +1,14 @@
+name: ToDo App Security Scan Pipeline
+
+on:
+  pull_request:
+    branches:
+      - trunk
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: hello world
+        run: Hello World!
