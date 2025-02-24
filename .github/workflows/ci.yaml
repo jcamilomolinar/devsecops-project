@@ -57,7 +57,7 @@ jobs:
 
       - name: Dependencies Security Scan
         run: | 
-          output=$(devsecops-engine-tools --module engine_dependencies --folder_path . --platform_devops github --remote_config_repo devsecops_remote_config --use_vulnerability_management false)
+          output=$(devsecops-engine-tools --module engine_dependencies --folder_path . --platform_devops github --remote_config_repo devsecops_remote_config --token_engine_dependencies ${{ secrets.NVD_API_KEY }} --use_vulnerability_management false)
           echo "$output"
           if [[ $output == *"✘Failed"* ]]; then
             exit 1
