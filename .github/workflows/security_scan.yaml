@@ -5,10 +5,29 @@ on:
     branches:
       - trunk
 
+env:
+  GITHUB_ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 jobs:
-  test:
+  security_scan:
     runs-on: ubuntu-latest
 
     steps:
-      - name: hello world
-        run: Hello World!
+      - name: Install DevSecOps Engine Tools
+        run: pip install devsecops-engine-tools
+      
+      - name: Static Code Scan
+        run: |
+          output=$(devsecops-engine-tools --module engine_code --platform_devops github --remote_config_repo devsecops_remote_config --use_vulnerability_management false)
+          echo "$output"
+          if [[ $output == *"✘Failed"* ]]; then
+            exit 1
+          fi
+
+      - name: Secret Code Scan
+        run: |
+          output=$(devsecops-engine-tools --module engine_secret --platform_devops github --remote_config_repo devsecops_remote_config --use_vulnerability_management false)
+          echo "$output"
+          if [[ $output == *"✘Failed"* ]]; then
+            exit 1
+          fi
