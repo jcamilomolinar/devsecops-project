@@ -19,8 +19,13 @@ jobs:
       - name: environment variables
         run: printenv
 
-      - name: view files
-        run: ls -R
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: List repository files
+        run: ls -la
       
       - name: Static Code Scan
         run: |
