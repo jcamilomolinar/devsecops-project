@@ -1,0 +1,375 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Despliegue de DefectDojo en ECS, EC2 con RDS (Free Tier)'
+
+Parameters:
+  DatabaseUsername:
+    Type: String
+    Description: Nombre de usuario para la base de datos RDS.
+
+  DatabasePassword:
+    Type: String
+    NoEcho: true
+    Description: Contraseña para la base de datos RDS.
+
+Resources:
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref DefectDojoVPC
+      InternetGatewayId: !Ref InternetGateway
+
+  DefectDojoVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+
+  PublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref DefectDojoVPC
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: us-east-1a
+
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref DefectDojoVPC
+      CidrBlock: 10.0.2.0/24
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: us-east-1b
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref DefectDojoVPC
+
+  DefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref PublicRouteTable
+
+  DefectDojoSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet group for DefectDojo RDS
+      SubnetIds:
+        - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
+      DBSubnetGroupName: defectdojo-subnet-group
+
+  DefectDojoSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: 'Allow HTTP access to DefectDojo'
+      VpcId: !Ref DefectDojoVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: 'Allow PostgreSQL access from ECS'
+      VpcId: !Ref DefectDojoVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref DefectDojoSecurityGroup
+
+  DefectDojoDB:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: postgres
+      DBInstanceClass: db.t3.micro
+      AllocatedStorage: 20
+      DBSubnetGroupName: !Ref DefectDojoSubnetGroup
+      MasterUsername: !Ref DatabaseUsername
+      MasterUserPassword: !Ref DatabasePassword
+      VPCSecurityGroups:
+        - !GetAtt RDSSecurityGroup.GroupId
+      PubliclyAccessible: false
+      BackupRetentionPeriod: 0
+
+  Cluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: deployment-defect-cluster
+
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: deployment-defect-log-group
+      RetentionInDays: 30
+
+  ExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: deployment-defect-role
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+  TaskDefinition:
+    DependsOn: DefectDojoDB
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: deployment-defect-task
+      Cpu: 4096
+      Memory: 8192
+      NetworkMode: awsvpc
+      ExecutionRoleArn: !Ref ExecutionRole
+      ContainerDefinitions:
+        - Name: nginx
+          Image: defectdojo/defectdojo-nginx:latest
+          Essential: true
+          DependsOn:
+            - ContainerName: uwsgi
+              Condition: HEALTHY
+          PortMappings:
+            - ContainerPort: 8080
+              HostPort: 8080
+            - ContainerPort: 8443
+              HostPort: 8443
+          Environment:
+            - Name: NGINX_METRICS_ENABLED
+              Value: "false"
+            - Name: DD_UWSGI_HOST
+              Value: "uwsgi"
+            - Name: DD_UWSGI_PORT
+              Value: "3031"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: nginx
+
+        - Name: uwsgi
+          Image: defectdojo/defectdojo-django:latest
+          Essential: true
+          HealthCheck:
+            Command: ["CMD-SHELL", "curl -f http://localhost:3031/health || exit 1"]
+            Interval: 30
+            Timeout: 5
+            Retries: 3
+            StartPeriod: 60
+          Environment:
+            - Name: DD_DEBUG
+              Value: "False"
+            - Name: DD_DJANGO_METRICS_ENABLED
+              Value: "False"
+            - Name: DD_ALLOWED_HOSTS
+              Value: "*"
+            - Name: DD_DATABASE_URL
+              Value: !Sub "postgresql://${DatabaseUsername}:${DatabasePassword}@${DefectDojoDB.Endpoint.Address}:5432/defectdojo"
+            - Name: DD_CELERY_BROKER_URL
+              Value: "redis://redis:6379/0"
+            - Name: DD_SECRET_KEY
+              Value: "hhZCp@D28z!n@NED*yB!ROMt+WzsY*iq"
+            - Name: DD_CREDENTIAL_AES_256_KEY
+              Value: "&91a*agLqesc*0DJ+2*bAbsUZfR*4nLw"
+            - Name: DD_DATABASE_READINESS_TIMEOUT
+              Value: "30"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: uwsgi
+
+        - Name: celerybeat
+          Image: defectdojo/defectdojo-django:latest
+          Essential: true
+          DependsOn:
+            - ContainerName: redis
+              Condition: START
+          Environment:
+            - Name: DD_DATABASE_URL
+              Value: !Sub "postgresql://${DatabaseUsername}:${DatabasePassword}@${DefectDojoDB.Endpoint.Address}:5432/defectdojo"
+            - Name: DD_CELERY_BROKER_URL
+              Value: "redis://redis:6379/0"
+            - Name: DD_SECRET_KEY
+              Value: "hhZCp@D28z!n@NED*yB!ROMt+WzsY*iq"
+            - Name: DD_CREDENTIAL_AES_256_KEY
+              Value: "&91a*agLqesc*0DJ+2*bAbsUZfR*4nLw"
+            - Name: DD_DATABASE_READINESS_TIMEOUT
+              Value: "30"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: celerybeat
+
+        - Name: celeryworker
+          Image: defectdojo/defectdojo-django:latest
+          Essential: true
+          DependsOn:
+            - ContainerName: redis
+              Condition: START
+          Environment:
+            - Name: DD_DATABASE_URL
+              Value: !Sub "postgresql://${DatabaseUsername}:${DatabasePassword}@${DefectDojoDB.Endpoint.Address}:5432/defectdojo"
+            - Name: DD_CELERY_BROKER_URL
+              Value: "redis://redis:6379/0"
+            - Name: DD_SECRET_KEY
+              Value: "hhZCp@D28z!n@NED*yB!ROMt+WzsY*iq"
+            - Name: DD_CREDENTIAL_AES_256_KEY
+              Value: "&91a*agLqesc*0DJ+2*bAbsUZfR*4nLw"
+            - Name: DD_DATABASE_READINESS_TIMEOUT
+              Value: "30"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: celeryworker
+
+        - Name: initializer
+          Image: defectdojo/defectdojo-django:latest
+          Essential: true
+          Environment:
+            - Name: DD_DATABASE_URL
+              Value: !Sub "postgresql://${DatabaseUsername}:${DatabasePassword}@${DefectDojoDB.Endpoint.Address}:5432/defectdojo"
+            - Name: DD_ADMIN_USER
+              Value: "admin"
+            - Name: DD_ADMIN_MAIL
+              Value: "admin@defectdojo.local"
+            - Name: DD_ADMIN_FIRST_NAME
+              Value: "Admin"
+            - Name: DD_ADMIN_LAST_NAME
+              Value: "User"
+            - Name: DD_INITIALIZE
+              Value: "true"
+            - Name: DD_SECRET_KEY
+              Value: "hhZCp@D28z!n@NED*yB!ROMt+WzsY*iq"
+            - Name: DD_CREDENTIAL_AES_256_KEY
+              Value: "&91a*agLqesc*0DJ+2*bAbsUZfR*4nLw"
+            - Name: DD_DATABASE_READINESS_TIMEOUT
+              Value: "30"
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: initializer
+
+        - Name: redis
+          Image: redis:7.2.5-alpine
+          Essential: true
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref LogGroup
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: redis
+      RequiresCompatibilities:
+        - FARGATE
+
+  Service:
+    Type: AWS::ECS::Service
+    DependsOn: LoadBalancerListener
+    Properties:
+      ServiceName: deployment-defect-service
+      Cluster: !Ref Cluster
+      TaskDefinition: !Ref TaskDefinition
+      DesiredCount: 1
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets:
+            - !Ref PublicSubnet1
+            - !Ref PublicSubnet2
+          SecurityGroups:
+            - !GetAtt DefectDojoSecurityGroup.GroupId
+      LoadBalancers:
+        - TargetGroupArn: !Ref TargetGroup
+          ContainerPort: 8080
+          ContainerName: nginx
+
+  LoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: LoadBalancerSecurityGroup
+      GroupDescription: Security group for load balancer
+      VpcId: !Ref DefectDojoVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    DependsOn: LoadBalancerSecurityGroup
+    Properties:
+      Name: deployment-defect-load-balancer
+      Subnets:
+        - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
+      SecurityGroups:
+        - !GetAtt LoadBalancerSecurityGroup.GroupId
+
+  LoadBalancerListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    DependsOn: TargetGroup
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      TargetType: ip
+      Name: deployment-defect-target-group
+      Port: 80
+      Protocol: HTTP
+      VpcId: !Ref DefectDojoVPC
+      HealthCheckPath: /
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 2
+
+Outputs:
+  LoadBalancerDNS:
+    Description: The DNS name of the load balancer
+    Value: !GetAtt LoadBalancer.DNSName
