@@ -21,6 +21,9 @@ El repositorio del proyecto utiliza un modelo de ramificación trunk base develo
 3. **security_scan** ```pull request: trunk ⬅️ feature/*```
     - Este workflow se ejecuta en los pull request enviados hacia trunk, donde se ejecuta un escaneo de código estático (con la herramienta [**Bearer**](https://docs.bearer.com/quickstart/)) la cual cuenta con compatibilidad con los lenguajes utilizados, además también se ejecuta un escaneo de secretos (con la herramienta [**Gitleaks**](https://github.com/gitleaks/gitleaks)) en busca de posibles filtraciones introducidas desde las ramas de desarrollo, se espera que pasen estas validaciones de seguridad para poder integrar el nuevo código.
 
+4. **aws** ```trunk```
+    - Este workflow se ejecuta para desplegar DefectDojo como plataforma de centralización de vulnerabilidades en AWS, el nombre del commit debe tener una estructura especifica para su ejecución.
+
 ---
 
 ## Plataforma de centralización de vulnerabilidades
