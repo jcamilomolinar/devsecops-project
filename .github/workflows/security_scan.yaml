@@ -6,6 +6,9 @@ on:
       - trunk
 
 env:
+  VM_PRODUCT_TYPE_NAME: TEAM - The ToDo App
+  VM_PRODUCT_NAME: ToDo App
+  VM_PRODUCT_DESCRIPTION: ToDo App is a simple web application that allows users to manage their tasks.
   GITHUB_ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
