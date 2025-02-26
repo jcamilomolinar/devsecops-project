@@ -170,10 +170,10 @@ Resources:
                   cd /opt/django-DefectDojo
                   
                   # Set environment variables
-                - !Sub "export DD_CREDENTIAL_AES_256_KEY=${DDCredentialAES256Key}\n"
-                - !Sub "export DD_SECRET_KEY=${DDSecretKey}\n"
-                - !Sub "export DD_MY_PASSWORD=${DDDefaultUserPassword}\n"
-                - !Sub "export DD_ADMIN_PASSWORD=${DDAdminPassword}\n"
+                - !Sub "export DD_CREDENTIAL_AES_256_KEY='${DDCredentialAES256Key}'\n"
+                - !Sub "export DD_SECRET_KEY='${DDSecretKey}'\n"
+                - !Sub "export DD_MY_PASSWORD='${DDDefaultUserPassword}'\n"
+                - !Sub "export DD_ADMIN_PASSWORD='${DDAdminPassword}'\n"
                 - !Sub "export DD_DATABASE_URL=\"postgres://${DDDatabaseAdmin}:${DDDatabasePassword}@"
                 - !GetAtt DefectDojoDB.Endpoint.Address
                 - ":5432/defectdojo\"\n"
