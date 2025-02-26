@@ -1,0 +1,44 @@
+name: Deploy DefectDojo Pipeline
+
+on:
+  push:
+    branches:
+      - trunk
+
+permissions:
+  contents: read
+
+jobs:
+  deploy_DefectDojo:
+    if: contains(github.event.head_commit.message, 'deploy defectdojo')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Validate CloudFormation Template
+        run: |
+          aws cloudformation validate-template --template-body file://aspm-deploy/dd_ec2.yaml
+
+      - name: Deploy CloudFormation Stack
+        run: |
+          aws cloudformation deploy \
+            --stack-name DefectDojo \
+            --template-file aspm-deploy/dd_ec2.yaml \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --parameter-overrides \
+                DDDatabaseAdmin=${{ secrets.DB_USERNAME }} \
+                DDDatabasePassword=${{ secrets.DB_PASSWORD }} \
+                DDCredentialAES256Key=${{ secrets.CREDENTIAL_AES_256_KEY }} \
+                DDSecretKey=${{ secrets.SECRET_KEY }} \
+                DDDefaultUserPassword=${{ secrets.DEFAULT_USER_PASSWORD }} \
+                DDAdminPassword=${{ secrets.ADMIN_PASSWORD }} \
+            --region us-east-1
