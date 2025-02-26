@@ -35,5 +35,14 @@ Para la implementación de la ASPM se usó un proyecto open source (pero que tam
 > - Panel de control con métricas de seguridad.
 
 ### Despliegue en AWS
-
 ...
+
+---
+
+## Estrategias de priorización de vulnerabilidades
+
+- Considerar la severidad de la vulnerabilidad, la facilidad de explotación y el valor de los activos afectados.
+
+- Clasificar las Vulnerabilidades utilizando sistemas como CVSS (Common Vulnerability Scoring System) para asignar puntuaciones y determinar la criticidad.
+
+- Abordar primero las vulnerabilidades críticas y de alto riesgo, estableciendo plazos claros para su resolución.
