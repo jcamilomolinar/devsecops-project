@@ -2,27 +2,27 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: 'Despliegue de DefectDojo en EC2 con RDS (Free Tier)'
 
 Parameters:
-  DD_DATABASE_ADMIN:
+  DDDatabaseAdmin:
     Type: String
     NoEcho: true
 
-  DD_DATABASE_PASSWORD:
+  DDDatabasePassword:
     Type: String
     NoEcho: true
 
-  DD_CREDENTIAL_AES_256_KEY:
+  DDCredentialAES256Key:
     Type: String
     NoEcho: true
 
-  DD_SECRET_KEY:
+  DDSecretKey:
     Type: String
     NoEcho: true
   
-  DD_DEFAULT_USER_PASSWORD:
+  DDDefaultUserPassword:
     Type: String
     NoEcho: true
 
-  DD_ADMIN_PASSWORD:
+  DDAdminPassword:
     Type: String
     NoEcho: true
 
@@ -132,8 +132,8 @@ Resources:
       DBInstanceClass: db.t3.micro
       AllocatedStorage: 20
       DBSubnetGroupName: !Ref DefectDojoSubnetGroup
-      MasterUsername: !Ref DD_DATABASE_ADMIN
-      MasterUserPassword: !Ref DD_DATABASE_PASSWORD
+      MasterUsername: !Ref DDDatabaseAdmin
+      MasterUserPassword: !Ref DDDatabasePassword
       VPCSecurityGroups:
         - !GetAtt RDSSecurityGroup.GroupId
       PubliclyAccessible: false
@@ -168,11 +168,11 @@ Resources:
             cd /opt/django-DefectDojo
             
             # Set environment variables
-            export DD_CREDENTIAL_AES_256_KEY=${DD_CREDENTIAL_AES_256_KEY}
-            export DD_SECRET_KEY=${DD_SECRET_KEY}
-            export DD_MY_PASSWORD=${DD_DEFAULT_USER_PASSWORD}
-            export DD_ADMIN_PASSWORD=${DD_ADMIN_PASSWORD}
-            export DD_DATABASE_URL="postgres://$${DD_DATABASE_ADMIN}:$${DD_DATABASE_PASSWORD}@${DefectDojoDB.Endpoint.Address}:5432/defectdojo"
+            export DD_CREDENTIAL_AES_256_KEY=${DDCredentialAES256Key}
+            export DD_SECRET_KEY=${DDSecretKey}
+            export DD_MY_PASSWORD=${DDDefaultUserPassword}
+            export DD_ADMIN_PASSWORD=${DDAdminPassword}
+            export DD_DATABASE_URL="postgres://$${DDDatabaseAdmin}:$${DDDatabasePassword}@${DefectDojoDB.Endpoint.Address}:5432/defectdojo"
             
             # Build images and run containers
             docker compose build
