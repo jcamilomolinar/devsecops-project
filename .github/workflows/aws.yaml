@@ -42,3 +42,8 @@ jobs:
                 DDDefaultUserPassword=${{ secrets.DEFAULT_USER_PASSWORD }} \
                 DDAdminPassword=${{ secrets.ADMIN_PASSWORD }} \
             --region us-east-1
+    
+      - name: Get CloudFormation Outputs
+        run: |
+          OUTPUTS=$(aws cloudformation describe-stacks --stack-name DefectDojo --query "Stacks[0].Outputs" --output json)
+          echo "LoadBalancerDNS: $OUTPUTS"
