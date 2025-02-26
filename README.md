@@ -36,15 +36,15 @@ Para la implementación de la ASPM se usó un proyecto open source (pero que tam
 
 ### Despliegue en AWS
 
-La infraestructura comienza con la creación de una VPC (DefectDojoVPC) con soporte para DNS, junto con dos subredes públicas en distintas zonas de disponibilidad (PublicSubnet1 y PublicSubnet2). Se configura una puerta de enlace a Internet (InternetGateway) y su respectiva asociación con la VPC, lo que permite que las instancias tengan conectividad externa. Además, se crea una tabla de ruteo (PublicRouteTable) con una ruta predeterminada para acceder a Internet.
+La infraestructura comienza con la creación de una VPC (**DefectDojoVPC**) con soporte para DNS, junto con dos subredes públicas en distintas zonas de disponibilidad (**PublicSubnet1** y **PublicSubnet2**). Se configura una puerta de enlace a Internet (InternetGateway) y su respectiva asociación con la VPC, lo que permite que las instancias tengan conectividad externa.
 
-Para la seguridad, se definen grupos de seguridad (DefectDojoSecurityGroup y RDSSecurityGroup). El primero permite el acceso a DefectDojo en el puerto 8080, la conexión a la base de datos en el puerto 5432 y acceso SSH desde cualquier IP. El segundo restringe el acceso a la base de datos PostgreSQL solo a instancias que pertenezcan al grupo de seguridad de DefectDojo.
+Para la seguridad, se definen grupos de seguridad (**DefectDojoSecurityGroup** y **RDSSecurityGroup**). El primero permite el acceso a DefectDojo en el puerto 8080, la conexión a la base de datos en el puerto 5432 y acceso SSH desde cualquier IP. El segundo restringe el acceso a la base de datos PostgreSQL solo a instancias que pertenezcan al grupo de seguridad de DefectDojo.
 
-Ademas se usa una base de datos dedicada que se configura en una instancia de Amazon RDS (DefectDojoDB) con PostgreSQL como motor, No es accesible públicamente para mayor seguridad.
+Ademas se usa una base de datos dedicada que se configura en una instancia de Amazon RDS (**DefectDojoDB**) con PostgreSQL como motor, No es accesible públicamente para mayor seguridad.
 
-La aplicación se despliega en una instancia EC2 utilizando un LaunchTemplate, tipo de instancia (t3.large), y configuración inicial. Durante el arranque, se instalan dependencias como Docker, Git y DefectDojo desde un [fork](https://github.com/jcamilomolinar/django-DefectDojo) del repositorio de GitHub. Luego, se definen variables de entorno con credenciales y configuración de la base de datos antes de ejecutar la aplicación con Docker Compose.
+La aplicación se despliega en una instancia EC2 utilizando un LaunchTemplate, tipo de instancia (t3.large), y configuración inicial. Durante el arranque, se instalan dependencias como Docker, Git y DefectDojo desde un [fork](https://github.com/jcamilomolinar/django-DefectDojo) del repositorio de GitHub. Luego, se definen variables de entorno con credenciales y configuración de la base de datos antes de ejecutar la aplicación con Docker Compose. Ademas se usa una base de datos dedicada que se configura en una instancia de Amazon RDS (**DefectDojoDB**) con PostgreSQL como motor, No es accesible públicamente para mayor seguridad.
 
-Para escalabilidad, se configura un AutoScalingGroup con un mínimo de una instancia y un máximo de dos, distribuyéndolas en las subredes públicas. Estas instancias se integran con un balanceador de carga que distribuye el tráfico HTTP en el puerto 8080. Se define un TargetGroup que monitorea la salud de las instancias y las reemplaza si es necesario. Un Listener en el balanceador de carga redirige las solicitudes entrantes hacia las instancias EC2 activas.
+PEstas instancias se integran con un balanceador de carga que distribuye el tráfico HTTP en el puerto 8080. Se define un TargetGroup que monitorea la salud de las instancias y las reemplaza si es necesario. Un Listener en el balanceador de carga redirige las solicitudes entrantes hacia las instancias EC2 activas.
 
 Finalmente, se proporciona una salida con el DNS del balanceador de carga, que es la dirección pública donde se puede acceder a DefectDojo después del despliegue.
 
