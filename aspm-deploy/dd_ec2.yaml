@@ -4,7 +4,6 @@ Description: 'Despliegue de DefectDojo en EC2 con RDS (Free Tier)'
 Parameters:
   DDDatabaseAdmin:
     Type: String
-    NoEcho: true
 
   DDDatabasePassword:
     Type: String
@@ -129,6 +128,7 @@ Resources:
     Type: AWS::RDS::DBInstance
     Properties:
       Engine: postgres
+      DBName: defectdojo
       DBInstanceClass: db.t3.micro
       AllocatedStorage: 20
       DBSubnetGroupName: !Ref DefectDojoSubnetGroup
