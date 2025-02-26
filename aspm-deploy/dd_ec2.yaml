@@ -172,7 +172,7 @@ Resources:
             export DD_SECRET_KEY=${DDSecretKey}
             export DD_MY_PASSWORD=${DDDefaultUserPassword}
             export DD_ADMIN_PASSWORD=${DDAdminPassword}
-            export DD_DATABASE_URL="postgres://$${DDDatabaseAdmin}:$${DDDatabasePassword}@${DefectDojoDB.Endpoint.Address}:5432/defectdojo"
+            export DD_DATABASE_URL="postgres://${DDDatabaseAdmin}:${DDDatabasePassword}@${DefectDojoDB.Endpoint.Address}:5432/defectdojo"
             
             # Build images and run containers
             docker compose build
