@@ -145,38 +145,43 @@ Resources:
       LaunchTemplateData:
         ImageId: ami-0e1bed4f06a3b463d
         InstanceType: t3.large
-        KeyName: keytest
+        KeyName: keypair
         SecurityGroupIds:
           - !Ref DefectDojoSecurityGroup
         UserData:
-          Fn::Base64: !Sub |
-            #!/bin/bash
-            set -ex
-            apt-get update
-            apt-get install -y ca-certificates curl git
-
-            # Install Docker
-            install -m 0755 -d /etc/apt/keyrings
-            curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-            chmod a+r /etc/apt/keyrings/docker.asc
-            echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
-            apt-get update
-            apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-            systemctl enable docker
-            systemctl start docker
-            git clone https://github.com/jcamilomolinar/django-DefectDojo /opt/django-DefectDojo
-            cd /opt/django-DefectDojo
-            
-            # Set environment variables
-            export DD_CREDENTIAL_AES_256_KEY=${DDCredentialAES256Key}
-            export DD_SECRET_KEY=${DDSecretKey}
-            export DD_MY_PASSWORD=${DDDefaultUserPassword}
-            export DD_ADMIN_PASSWORD=${DDAdminPassword}
-            export DD_DATABASE_URL="postgres://${DDDatabaseAdmin}:${DDDatabasePassword}@${DefectDojoDB.Endpoint.Address}:5432/defectdojo"
-            
-            # Build images and run containers
-            docker compose build
-            docker compose up -d
+          Fn::Base64:
+            Fn::Join:
+              - ""
+              - - |
+                  #!/bin/bash
+                  set -ex
+                  apt-get update
+                  apt-get install -y ca-certificates curl git
+                  # Install Docker
+                  install -m 0755 -d /etc/apt/keyrings
+                  curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+                  chmod a+r /etc/apt/keyrings/docker.asc
+                  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+                  apt-get update
+                  apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+                  systemctl enable docker
+                  systemctl start docker
+                  git clone https://github.com/jcamilomolinar/django-DefectDojo /opt/django-DefectDojo
+                  cd /opt/django-DefectDojo
+                  
+                  # Set environment variables
+                - !Sub "export DD_CREDENTIAL_AES_256_KEY=${DDCredentialAES256Key}\n"
+                - !Sub "export DD_SECRET_KEY=${DDSecretKey}\n"
+                - !Sub "export DD_MY_PASSWORD=${DDDefaultUserPassword}\n"
+                - !Sub "export DD_ADMIN_PASSWORD=${DDAdminPassword}\n"
+                - !Sub "export DD_DATABASE_URL=\"postgres://${DDDatabaseAdmin}:${DDDatabasePassword}@"
+                - !GetAtt DefectDojoDB.Endpoint.Address
+                - ":5432/defectdojo\"\n"
+                - |
+                  
+                  # Build images and run containers
+                  docker compose build
+                  docker compose up -d
       
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
