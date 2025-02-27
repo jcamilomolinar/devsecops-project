@@ -145,7 +145,6 @@ Resources:
       LaunchTemplateData:
         ImageId: ami-0e1bed4f06a3b463d
         InstanceType: t3.large
-        KeyName: keypair
         SecurityGroupIds:
           - !Ref DefectDojoSecurityGroup
         UserData:
