@@ -52,7 +52,7 @@ jobs:
 
       - name: IaC Security Scan
         run: | 
-          output=$(devsecops-engine-tools --module engine_iac --folder_path . --platform_devops github --remote_config_repo devsecops_remote_config --use_vulnerability_management false)
+          output=$(devsecops-engine-tools --module engine_iac --folder_path . --platform_devops github --remote_config_repo devsecops_remote_config --use_vulnerability_management true --send_metrics false --token_vulnerability_management ${{ secrets.TOKEN_DEFECT_DOJO }})
           echo "$output"
           if [[ $output == *"✘Failed"* ]]; then
             exit 1
